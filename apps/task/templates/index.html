@@ -1,0 +1,262 @@
+[[extend 'layout.html']]
+<style>
+    .task {
+      margin-bottom: 20px;
+      padding: 10px;
+      border: 1px solid #027396;
+      border-radius: 5px;
+    }
+    .task-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .editButton {
+      margin-left: auto;
+    }
+    .filter {
+      border: 1px solid #027396;
+
+    }
+</style>
+
+
+<div class="section">
+  <div class="vars">
+      <h1 class="title is-2">[[=message]]! Welcome to your task app.</h1>
+      <h2 class="title is-3">Please select your manager from the dropdown list.</h2>
+  </div>
+</div>
+<div class="section">
+      <a class="button is-info" id="create_task" href="[[=URL('api/create_task')]]">Create New Task</a>
+      <div class="dropdown is-up">
+        <div class="dropdown-trigger">
+          <button class="button" aria-haspopup="true" aria-controls="dropdown-menu" onclick="toggleDropdown()">
+            <span>Select Manager</span>
+            <span class="icon is-small">
+              <i class="fas fa-angle-down" aria-hidden="true"></i>
+            </span>
+          </button>
+        </div>
+        <div class="dropdown-menu" id="dropdown-menu" role="menu">
+          <div class="dropdown-content">
+            [[for user in users:]]
+            <a class="dropdown-item" href="[[=URL('change_manager', cur_user_id, user['id'])]]">
+              [[=user['first_name']]] [[=user['last_name']]]
+            </a>
+            [[pass]]
+            <hr class="dropdown-divider">
+            <a class="dropdown-item is-active">Current Manager: [[=cur_manager]]</a>
+          </div>
+        </div>
+      </div>
+  [[pass]]
+</div>
+
+<!--                     
+  <div class="calendar">
+    <label class="label">Deadline</label>
+    <input class="input" type="datetime-local" id="deadline" v-model="deadline">
+  </div>-->
+
+
+<div class="section filter" id="app1">
+  <div>
+    <h2 class="title is-3">Filter tasks by:</h2>
+  <!--Filter by date created, deadline, status (not done)-->
+  <div class="columns">
+    <div class="column">
+    </div>
+  </div>
+  <!-- Filter by self checkboxes -->
+  <div class="columns">
+    <div class="column">
+      <div class="control">
+        <label class="checkbox">
+          <input type="checkbox" id="created_by_self" v-model="filters.created_by_self">
+          Created By Me
+        </label>
+      </div>
+    </div>
+    <div class="column">
+      <div class="control">
+        <label class="checkbox">
+          <input type="checkbox" id="assigned_to_self" v-model="filters.assigned_to_self">
+          Assigned To Me
+        </label>
+      </div>
+    </div>
+  </div>
+  <!-- Filter by specific user dropdown menus-->
+  <div class="columns">
+    <div class="column">
+      <label class="label">Created by Specific User:</label>
+      <div class="select is-info">
+        <select v-model="filters.created_by_user">
+          [[for user in users:]]
+          <option value="[[=user['id']]]">[[=user['first_name']]] [[=user['last_name']]]</option>
+          [[pass]]
+        </select>
+      </div>
+    </div>
+
+    <div class="column">
+      <label class="label">Assigned To Specific User:</label>
+      <div class="select is-info">
+        <select v-model="filters.assigned_to_user">
+          [[for user in users:]]
+          <option value="[[=user['id']]]">[[=user['first_name']]] [[=user['last_name']]]</option>
+          [[pass]]
+        </select>
+      </div>
+    </div>
+    </div>
+
+    <div class="columns">
+      <div class="column">
+      <label class="label">Sort By Dates:</label>
+      <select v-model="filters.sortOption">
+        <option value="newestCreate">Recently Created</option>
+        <option value="oldestCreate">Oldest Created</option>
+        <option value="upcomingDeadline">Upcoming Deadline</option>
+        <option value="latestDeadline">Furthest Deadline</option>
+      </select>
+    </div>
+    
+    <div class="column">
+      <label class="label">Sort By Status:</label>
+      <select v-model="filters.statusOption">
+        <option value="all">All</option>
+        <option value="pending">Pending</option>
+        <option value="acknowledged">Acknowledged</option>
+        <option value="rejected">Rejected</option>
+        <option value="completed">Completed</option>
+        <option value="failed">Failed</option>
+      </select>
+    </div>
+  </div>
+  <div class="columns">
+    <div class="column">
+      <label class="label">Created By Managed User</label>
+      <div class="select is-info">
+        <select v-model="filters.created_by_managed">
+          [[for user in managed_users:]]
+          <option value="[[=user['id']]]">[[=user['name']]]</option>
+          [[pass]]
+        </select>
+      </div>
+    </div>
+    <div class="column">
+      <label class="label">Assigned To Managed User</label>
+      <div class="select is-info">
+        <select v-model="filters.assigned_to_managed">
+          [[for user in managed_users:]]
+          <option value="[[=user['id']]]">[[=user['name']]]</option>
+          [[pass]]
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Two buttons once clear filters one apply filters -->
+  <div class="field is-grouped is-grouped-right">
+    <div class="control">
+      <button class="button is-info" @click="clearFilter()">Clear Filters</button>
+    </div>
+    <div class="control">
+      <button class="button is-info" @click="filterTask()">Apply Filters</button>
+    </div>
+  </div>
+
+  </section>
+  </div>
+  <!-- section for displaying tasks -->
+  <div>
+    <div v-for="task in tasks" :key="task.task.id" class="task">
+      <div class="task-header">
+        <h1 v-if="editing.current!=task" class="title is-small">{{ task.task.title }}</h1>
+        <div v-else>
+          <label for="title">Title:</label>
+          <textarea v-model="task.title"></textarea>
+        </div>
+        <button class="button is-info" v-if="editing.current!=task" v-on:click="editTask(task)">Edit</button>
+        <button class="button is-info" v-if="editing.current==task" v-on:click="saveTask(task)">Save</button>
+        <button class="button is-info" v-if="editing.current==task" v-on:click="cancelEdit()">Cancel</button>
+      </div>
+  
+      <p v-if="editing.current!=task">{{ task.task.description }}</p>
+      <div v-else>
+        <label for="description">Description:</label>
+        <textarea v-model="task.description"></textarea>
+      </div>
+      
+  
+      <p v-if="editing.current!=task">Assigned to: {{ task.task.assigned_to }}</p>
+      <div v-else>
+        <label for="assigned_to">Assigned to:</label>
+        <select v-model="task.assigned_to">
+          <option v-for="user in users" :key="user.id" :value="user.id">{{ user.first_name }} {{ user.last_name }}</option>
+        </select>
+      </div>
+      
+      <p v-if="editing.current!=task">Created by: {{ task.auth_user.first_name }} {{ task.auth_user.last_name }}</p>
+      <div v-else>
+        <label for="created_by">Created by:</label>
+        <select v-model="task.created_by">
+          <option v-for="user in users" :key="user.id" :value="user.id">{{ user.first_name }} {{ user.last_name }}</option>
+        </select>
+      </div>
+
+      <p v-if="editing.current!=task">Created on: {{task.task.created_on}}</p>
+      <div v-else>
+        <label for="created_on">Created on:</label>
+        <input type="datetime-local" v-model="task.created_on"></input>
+      </div>
+  
+      <p v-if="editing.current!=task">Due: {{ task.task.deadline }}</p>
+      <div v-else>
+        <label for="deadline">Due:</label>
+        <input type="datetime-local" v-model="task.deadline"></input>
+      </div>
+  
+      <p v-if="editing.current!=task">Status: {{ task.task.status }}</p>
+      <div v-else>
+        <label for="status">Status: </label>
+        <select v-model="task.status">
+          <option v-for="status in statusOptions" :key="status" :value="status">{{ status }}</option>
+        </select>
+      </div>
+
+      <div id="comment">
+        <textarea v-model="newComment" placeholder="Write a comment..."></textarea>
+        <button class="button is-primary" v-on:click="addComment(task.id)">Post Comment</button>
+        <div v-for="comment in comments[task.id]" :key="comment.id">
+          <p>{{ comment.content }}</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</section>
+</div>
+<!-- section for displaying tasks -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/vue/3.4.21/vue.global.prod.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.6.8/axios.min.js" integrity="sha512-PJa3oQSLWRB7wHZ7GQ/g+qyv6r4mbuhmiDb8BjSFZ8NZ2a42oTtAq5n0ucWAwcQDlikAtkub+tPVCw4np27WCg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="js/index.js"></script>
+
+<!-- script for manager drop down menu -->
+<script>
+  function toggleDropdown() {
+    var dropdown = document.querySelector('.dropdown');
+    dropdown.classList.toggle('is-active');
+  }
+
+  document.addEventListener('click', function(event) {
+    var dropdown = document.querySelector('.dropdown');
+    var button = dropdown.querySelector('.button');
+    if (!dropdown.contains(event.target) && !button.contains(event.target)) {
+      dropdown.classList.remove('is-active');
+    }
+  });
+</script>
